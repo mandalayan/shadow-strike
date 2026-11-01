@@ -8,7 +8,7 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 const PORT = Number(process.env.PORT) || 3000;
-const WIDTH = 960, FLOOR = 420, TICK = 1000 / 30;
+const WIDTH = 960, FLOOR = 420, TICK = 1000 / 30, GRAVITY = 0.58, MOVE_ACCEL = 0.82, MAX_SPEED = 4.8;
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 app.use(express.static(path.join(__dirname, 'public'), { maxAge: 0, etag: false, lastModified: false }));
@@ -25,7 +25,7 @@ const makeFighter = (playerNo, x) => ({
 });
 const makeRoom = id => ({ id, players: [], fighters:[makeFighter(1,260),makeFighter(2,700)], started:false, over:false, time:99, ticks:0 });
 const snapshot = room => ({ roomId:room.id, started:room.started, over:room.over, time:room.time,
-  fighters:room.fighters.map(({playerNo,x,y,face,hp,grounded,blocking,attack,walk})=>({playerNo,x,y,face,hp,grounded,blocking,attack,walk})) });
+  fighters:room.fighters.map(({playerNo,x,y,vx,vy,face,hp,grounded,blocking,attack,attackTicks,walk,stun})=>({playerNo,x,y,vx,vy,face,hp,grounded,blocking,attack,attackTicks,walk,stun})) });
 const sendState = room => io.to(room.id).emit('game:state', snapshot(room));
 function finish(room, winner) {
   if (room.over) return;
@@ -61,22 +61,31 @@ function update(room) {
     const p=room.fighters[i], opponent=room.fighters[1-i], input=p.input;
     p.face = p.x <= opponent.x ? 1 : -1;
     p.blocking = !!input.block && p.grounded && !p.attack && p.stun===0;
-    if (p.cooldown>0) p.cooldown--;
-    if (p.attackTicks>0) { p.attackTicks--; combatHit(room,p,opponent); if (p.attackTicks===0) p.attack=null; }
-    if (room.over) return;
-    if (p.stun>0) { p.stun--; p.vx*=0.86; }
-    else if (!p.attack) {
-      p.vx = p.blocking ? 0 : (Number(input.right)-Number(input.left))*3.8;
-      if (input.jump && !p.previous.jump && p.grounded && !p.blocking) { p.vy=-12.5; p.grounded=false; }
-      if (input.punch && !p.previous.punch) beginAttack(p,'punch');
-      else if (input.kick && !p.previous.kick) beginAttack(p,'kick');
-      p.walk += Math.abs(p.vx)*0.12;
+    if(p.cooldown>0)p.cooldown--;
+    if(p.attackTicks>0){p.attackTicks--;combatHit(room,p,opponent);if(p.attackTicks===0)p.attack=null;}
+    if(room.over)return;
+    const move=Number(input.right)-Number(input.left);
+    if(p.stun>0){p.stun--;p.vx*=0.9;}
+    else if(p.blocking){p.vx*=0.72;}
+    else if(p.attack){p.vx*=0.86;}
+    else {
+      p.vx += move * MOVE_ACCEL * (p.grounded ? 1 : 0.62);
+      if(move===0)p.vx*=p.grounded?0.78:0.985;
+      p.vx=Math.max(-MAX_SPEED,Math.min(MAX_SPEED,p.vx));
+      if(input.jump&&!p.previous.jump&&p.grounded){p.vy=-13.2;p.grounded=false;}
+      if(input.punch&&!p.previous.punch)beginAttack(p,'punch');
+      else if(input.kick&&!p.previous.kick)beginAttack(p,'kick');
     }
+    p.walk += Math.abs(p.vx)*0.09;
     p.previous={...input};
-    p.x=Math.max(45,Math.min(WIDTH-45,p.x+p.vx));
-    p.y+=p.vy; p.vy+=0.55;
+    p.x=Math.max(42,Math.min(WIDTH-42,p.x+p.vx));
+    p.y+=p.vy;p.vy+=GRAVITY;
     if(p.y>=FLOOR){p.y=FLOOR;p.vy=0;p.grounded=true;}
   }
+  // Keep the fighters from passing through one another while allowing separation.
+  const [left,right]=room.fighters[0].x<=room.fighters[1].x?room.fighters:[room.fighters[1],room.fighters[0]];
+  const minGap=68, gap=right.x-left.x;
+  if(gap<minGap){const overlap=(minGap-gap)/2;left.x=Math.max(42,left.x-overlap);right.x=Math.min(WIDTH-42,right.x+overlap);if(left.vx>0)left.vx=0;if(right.vx<0)right.vx=0;}
   sendState(room);
 }
 setInterval(()=>rooms.forEach(update),TICK);
