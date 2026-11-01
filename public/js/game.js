@@ -2,21 +2,25 @@
   'use strict';
   const socket=io(), canvas=document.querySelector('#arena'), ctx=canvas.getContext('2d');
   const W=canvas.width,H=canvas.height,FLOOR=420,keys=new Set();
-  const status=document.querySelector('#status'),join=document.querySelector('#join');
+  const status=document.querySelector('#status'),createBtn=document.querySelector('#create-room'),joinBtn=document.querySelector('#join-room'),codeInput=document.querySelector('#room-code'),roomInfo=document.querySelector('#room-info');
   const controls=[{left:'a',right:'d',jump:'w',punch:'f',kick:'g',block:'h'},{left:'ArrowLeft',right:'ArrowRight',jump:'ArrowUp',punch:'k',kick:'l',block:';'}];
   let playerNo=null,roomId=null,started=false,state=null,clock=99;
-  join.addEventListener('click',()=>{if(!socket.connected){status.textContent='Connecting to server…';return;}join.disabled=true;status.textContent='Finding an opponent…';socket.emit('match:join');});
+  createBtn.addEventListener('click',()=>{if(!socket.connected){status.textContent='Connecting to server…';return;}createBtn.disabled=true;joinBtn.disabled=true;socket.emit('room:create');});
+  joinBtn.addEventListener('click',()=>{const code=codeInput.value.trim().toUpperCase();if(!socket.connected){status.textContent='Connecting to server…';return;}if(!code){status.textContent='Enter a room code first.';return;}createBtn.disabled=true;joinBtn.disabled=true;socket.emit('room:join',code);});
+  codeInput.addEventListener('input',()=>{codeInput.value=codeInput.value.toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,6);});codeInput.addEventListener('keydown',e=>{if(e.key==='Enter')joinBtn.click();});
   addEventListener('keydown',e=>{keys.add(e.key.toLowerCase());keys.add(e.key);if(['ArrowLeft','ArrowRight','ArrowUp',' '].includes(e.key))e.preventDefault();});
   addEventListener('keyup',e=>{keys.delete(e.key.toLowerCase());keys.delete(e.key);});
   addEventListener('blur',()=>keys.clear());
-  socket.on('connect',()=>{status.textContent='Connected. Press Find Match to play.';});
-  socket.on('connect_error',()=>{status.textContent='Could not connect. Check that the Node server is running.';join.disabled=false;});
-  socket.on('disconnect',()=>{started=false;status.textContent='Disconnected from server. Refresh to reconnect.';join.disabled=false;});
-  socket.on('match:assigned',d=>{roomId=d.roomId;playerNo=d.playerNo;status.textContent=`Room ${roomId} · Player ${playerNo} · Waiting for opponent`;});
+  socket.on('connect',()=>{status.textContent='Connected. Create a room or enter a room code.';});
+  socket.on('connect_error',()=>{status.textContent='Could not connect. Check that the Node server is running.';joinBtn.disabled=false;});
+  socket.on('disconnect',()=>{started=false;status.textContent='Disconnected from server. Refresh to reconnect.';joinBtn.disabled=false;});
+  socket.on('room:created',d=>{roomInfo.textContent=`Share this code with your opponent: ${d.roomId}`;roomInfo.classList.add('room-code-ready');});
+  socket.on('room:error',d=>{createBtn.disabled=false;joinBtn.disabled=false;status.textContent=d.message;});
+  socket.on('match:assigned',d=>{roomId=d.roomId;playerNo=d.playerNo;roomInfo.textContent=`Room code: ${roomId} · Player ${playerNo}`;status.textContent=`Room ${roomId} · Waiting for opponent`;});
   socket.on('match:players',d=>{if(d.count===1)status.textContent='Waiting for another fighter to join…';});
-  socket.on('match:start',()=>{started=true;status.textContent='FIGHT!';join.textContent='MATCH IN PROGRESS';});
+  socket.on('match:start',()=>{started=true;status.textContent='FIGHT!';roomInfo.textContent=`Room ${roomId} · Match in progress`;});
   socket.on('game:state',s=>{state=s;clock=s.time;});
-  function resetForQueue(message){started=false;state=null;playerNo=null;roomId=null;join.disabled=false;join.textContent='FIND MATCH';status.textContent=message;}
+  function resetForQueue(message){started=false;state=null;playerNo=null;roomId=null;createBtn.disabled=false;joinBtn.disabled=false;status.textContent=message;roomInfo.textContent='Create a room or join with a room code.';}
   socket.on('game:over',d=>{status.textContent=d.message;socket.emit('match:leave');resetForQueue(d.message+' — Find another match.');});
   socket.on('match:opponent-left',()=>{socket.emit('match:leave');resetForQueue('Opponent disconnected. Find another match.');});
   setInterval(()=>{if(!started||!playerNo||!socket.connected)return;const c=controls[playerNo-1];const down=k=>keys.has(k)||keys.has(k.toLowerCase());socket.emit('fighter:input',{left:down(c.left),right:down(c.right),jump:down(c.jump),punch:down(c.punch),kick:down(c.kick),block:down(c.block)});},33);
