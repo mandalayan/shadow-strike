@@ -39,6 +39,8 @@ function beginAttack(a, kind) {
 }
 function combatHit(room, a, d) {
   if (!a.attack || a.hitDone) return;
+  // Only consume the attack hit when its active frame is reached.
+  // Setting hitDone before this check made every attack miss.
   const active = a.attackTicks <= (a.attack === 'kick' ? 10 : 8);
   if (!active) return;
   a.hitDone = true;
