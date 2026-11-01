@@ -96,15 +96,25 @@ io.on('connection', socket => {
       room.players.forEach(pid=>{ if(notify) io.to(pid).emit('match:opponent-left'); });
     }
   }
-  socket.on('match:join',()=>{
-    if(roomId) return;
-    let room=[...rooms.values()].find(r=>!r.started&&!r.over&&r.players.length===1);
-    if(!room){let id;do{id=Math.random().toString(36).slice(2,8).toUpperCase()}while(rooms.has(id));room=makeRoom(id);rooms.set(id,room);}
+  function attachToRoom(room) {
     roomId=room.id; playerNo=room.players.length+1; room.players.push(socket.id); socket.join(roomId);
-    socket.emit('match:assigned',{roomId,playerNo});
-    io.to(roomId).emit('match:players',{count:room.players.length});
+    socket.emit('match:assigned',{roomId,playerNo}); io.to(roomId).emit('match:players',{count:room.players.length});
     if(room.players.length===2){room.started=true;room.over=false;room.time=99;room.ticks=0;room.fighters=[makeFighter(1,260),makeFighter(2,700)];io.to(roomId).emit('match:start',{roomId});sendState(room);}
-  });
+  }
+  function createRoom() {
+    if(roomId)return;
+    let id;do{id=Math.random().toString(36).slice(2,8).toUpperCase();}while(rooms.has(id));
+    const room=makeRoom(id);rooms.set(id,room);attachToRoom(room);socket.emit('room:created',{roomId:id});
+  }
+  function joinRoom(code) {
+    if(roomId){socket.emit('room:error',{message:'You are already in a room.'});return;}
+    const id=String(code||'').trim().toUpperCase(),room=rooms.get(id);
+    if(!/^[A-Z0-9]{6}$/.test(id)||!room){socket.emit('room:error',{message:'Room code not found. Check the code and try again.'});return;}
+    if(room.started||room.over||room.players.length>=2){socket.emit('room:error',{message:'This room is full or the match has already started.'});return;}
+    attachToRoom(room);
+  }
+  socket.on('room:create',createRoom);socket.on('room:join',joinRoom);
+  socket.on('match:join',()=>{if(roomId)return;let room=[...rooms.values()].find(r=>!r.started&&!r.over&&r.players.length===1);if(!room){createRoom();return;}attachToRoom(room);});
   socket.on('fighter:input',input=>{
     if(!roomId||!playerNo||!input||typeof input!=='object')return;
     const room=rooms.get(roomId); if(!room||!room.started)return;
