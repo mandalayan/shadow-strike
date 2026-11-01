@@ -1,17 +1,17 @@
-# Shadow Strike — Node.js + EJS
+# Shadow Strike — Node.js, Express, EJS + Socket.IO
 
-A browser-based 2D fighting game with an Express server, EJS-rendered frontend, and Socket.IO matchmaking / realtime opponent-state relay.
+A 2D hand-to-hand fighting game with browser-rendered canvas graphics and server-authoritative multiplayer simulation.
 
 ## Requirements
-- Node.js 18 or newer
+- Node.js 18+
 - npm
 
-## Run locally
+## Start
 ```bash
 npm install
 npm start
 ```
-Open http://localhost:3000 in two browser tabs or on two devices on the same network. Click **Find Match** in each tab. The server pairs players into a room.
+Visit http://localhost:3000 in two browser tabs (or two devices on the same network), then click **Find Match** in both. The server pairs players into a room.
 
 ## Controls
 | Action | Player 1 | Player 2 |
@@ -22,13 +22,14 @@ Open http://localhost:3000 in two browser tabs or on two devices on the same net
 | Kick | G | L |
 | Block | H | ; |
 
-## Project structure
-- `server.js` — Express app, routes, Socket.IO room matchmaking
-- `views/index.ejs` — EJS page template
-- `public/css/style.css` — responsive styling
-- `public/js/game.js` — canvas game and Socket.IO client
+## Project layout
+- `server.js`: Express routes, Socket.IO matchmaking, authoritative physics/combat/timer
+- `views/index.ejs`: EJS page template
+- `public/css/style.css`: responsive styling
+- `public/js/game.js`: keyboard input, canvas rendering, Socket.IO client
 
 ## Deploy
-Run on a Node.js host with a persistent WebSocket-capable service. Set `PORT` if required by your host.
+Deploy to a Node.js host that supports persistent WebSocket connections. Set the `PORT` environment variable if needed. The `/health` endpoint returns a simple readiness status.
 
-> Prototype note: this is a playable networking foundation. Client movement and combat are currently client-simulated and relayed; for competitive play, move physics, hit validation, health, and match results to an authoritative server.
+## Prototype notes
+This is a working multiplayer foundation. It validates game movement and combat on the server. It does not yet include accounts, matchmaking queues across regions, ranked play, anti-cheat hardening, or lag compensation.

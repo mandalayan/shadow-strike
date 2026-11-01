@@ -1,9 +1,0 @@
-{
-  "name": "shadow-strike",
-  "version": "1.0.0",
-  "description": "2D multiplayer hand-to-hand combat game using Node.js, Express, EJS and Socket.IO",
-  "main": "server.js",
-  "scripts": { "start": "node server.js", "dev": "node --watch server.js" },
-  "engines": { "node": ">=18" },
-  "dependencies": { "ejs": "^3.1.10", "express": "^4.21.2", "socket.io": "^4.8.1" }
-}
