@@ -11,7 +11,7 @@ const PORT = Number(process.env.PORT) || 3000;
 const WIDTH = 960, FLOOR = 420, TICK = 1000 / 30;
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
-app.use(express.static(path.join(__dirname, 'public'), { maxAge: '1h' }));
+app.use(express.static(path.join(__dirname, 'public'), { maxAge: 0, etag: false, lastModified: false }));
 app.get('/', (_req, res) => res.render('index', { title: 'Shadow Strike' }));
 app.get('/health', (_req, res) => res.json({ status: 'ok' }));
 
