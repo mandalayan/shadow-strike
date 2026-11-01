@@ -1,27 +1,34 @@
-# Shadow Strike
+# Shadow Strike — Node.js + EJS
 
-A small 2D hand-to-hand fighting game made with HTML Canvas and vanilla JavaScript. It supports two players sharing one keyboard.
+A browser-based 2D fighting game with an Express server, EJS-rendered frontend, and Socket.IO matchmaking / realtime opponent-state relay.
 
-## Run it
-Open `index.html` in a modern browser. No dependencies, build tools, or server are required.
+## Requirements
+- Node.js 18 or newer
+- npm
+
+## Run locally
+```bash
+npm install
+npm start
+```
+Open http://localhost:3000 in two browser tabs or on two devices on the same network. Click **Find Match** in each tab. The server pairs players into a room.
 
 ## Controls
 | Action | Player 1 | Player 2 |
 |---|---|---|
-| Move | A / D | Left / Right |
-| Jump | W | Up |
+| Move | A / D | ← / → |
+| Jump | W | ↑ |
 | Punch | F | K |
 | Kick | G | L |
 | Block | H | ; |
 
-## Features
-- Side-view arena with animated fighters
-- Punches, kicks, jumping, blocking, hit stun and knockback
-- Health bars, countdown timer, win and restart states
-- Responsive layout
+## Project structure
+- `server.js` — Express app, routes, Socket.IO room matchmaking
+- `views/index.ejs` — EJS page template
+- `public/css/style.css` — responsive styling
+- `public/js/game.js` — canvas game and Socket.IO client
 
-## GitHub Pages
-After pushing the project to a GitHub repository, open **Settings → Pages**, select **Deploy from a branch**, choose `main` and `/ (root)`, then save. The game will be hosted as a static site.
+## Deploy
+Run on a Node.js host with a persistent WebSocket-capable service. Set `PORT` if required by your host.
 
-## Online multiplayer
-This version is local multiplayer. Online matchmaking requires a server (for example, a Node.js WebSocket service) and is not included in this first build.
+> Prototype note: this is a playable networking foundation. Client movement and combat are currently client-simulated and relayed; for competitive play, move physics, hit validation, health, and match results to an authoritative server.
