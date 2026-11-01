@@ -11,8 +11,8 @@
   socket.on('match:players',d=>{if(d.count===1)status.textContent='Waiting for another fighter to join…'});
   socket.on('match:start',()=>{started=true;status.textContent='FIGHT!';join.textContent='MATCH FOUND'});
   socket.on('game:state',s=>{state=s;time=s.time});
-  socket.on('game:over',d=>{started=false;status.textContent=d.message;join.disabled=false;join.textContent='FIND MATCH'});
-  socket.on('match:opponent-left',()=>{started=false;status.textContent='Opponent disconnected. Find another match.';join.disabled=false;join.textContent='FIND MATCH'});
+  socket.on('game:over',d=>{started=false;status.textContent=d.message;join.disabled=false;join.textContent='FIND MATCH';socket.emit('match:leave');roomId=null;playerNo=null;});
+  socket.on('match:opponent-left',()=>{started=false;status.textContent='Opponent disconnected. Find another match.';join.disabled=false;join.textContent='FIND MATCH';socket.emit('match:leave');roomId=null;playerNo=null;});
   setInterval(()=>{if(!started||!playerNo)return;const c=controls[playerNo-1];socket.emit('fighter:input',{left:keys.has(c.left),right:keys.has(c.right),jump:keys.has(c.jump),punch:keys.has(c.punch),kick:keys.has(c.kick),block:keys.has(c.block)});},33);
   function rect(x,y,w,h,c){ctx.fillStyle=c;ctx.fillRect(x,y,w,h)}
   function background(){const g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,'#101c32');g.addColorStop(1,'#27344a');ctx.fillStyle=g;ctx.fillRect(0,0,W,H);for(let i=0;i<16;i++){const x=i*66;rect(x,220+(i%4)*22,48,200,'#17263b');for(let j=0;j<3;j++)rect(x+8+j*12,238+(i%4)*22,5,8,'#3a5974')}rect(0,FLOOR+4,W,H-FLOOR,'#121b2b');rect(0,FLOOR,W,4,'#65d8ef');ctx.fillStyle='#dceeff';ctx.font='bold 12px Rajdhani';ctx.fillText('SHADOW DISTRICT // FIGHT NIGHT',18,25)}
